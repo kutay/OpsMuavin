@@ -1,8 +1,9 @@
 import { encodeBase64 } from 'https://deno.land/std@0.208.0/encoding/base64.ts'
 
-const username = Deno.env.get('BITBUCKET_USERNAME')
-const app_password = Deno.env.get('BITBUCKET_APP_PASSWORD')
-console.log(Deno.env)
+import * as config from '../config.ts'
+
+const username = config.get('BITBUCKET_USERNAME')
+const app_password = config.get('BITBUCKET_APP_PASSWORD')
 
 const b64_authorization_header = encodeBase64(`${username}:${app_password}`)
 
@@ -15,10 +16,15 @@ async function makeRequest (url: string, method?: string, data?: object) {
     }
   })
 
+  if (result.status == 401) {
+    console.log(app_password)
+    throw new Error(`${result.status} - ${result.statusText}`)
+  }
+
   return await result.json()
 }
 
-async function listRepositories (workspace: string) {
+export async function listRepositories (workspace: string) {
   const result = await makeRequest(`repositories/${workspace}/?pagelen=100`)
 
   const json = await result.json()
@@ -31,12 +37,15 @@ async function listRepositories (workspace: string) {
   })
 }
 
-async function listRepositoryEnvironments (workspace: string, repoSlug: string) {
+export async function listRepositoryEnvironments (
+  workspace: string,
+  repoSlug: string
+) {
   return await makeRequest(
     `repositories/${workspace}/${repoSlug}/environments/`
   )
 }
-async function listRepositoryEnvironmentVariables (
+export async function listRepositoryEnvironmentVariables (
   workspace: string,
   repoSlug: string,
   environmentUuid: string
@@ -46,7 +55,10 @@ async function listRepositoryEnvironmentVariables (
   )
   return result.values
 }
-async function listRepositoryVariables (workspace: string, repoSlug: string) {
+export async function listRepositoryVariables (
+  workspace: string,
+  repoSlug: string
+) {
   const result = await makeRequest(
     `repositories/${workspace}/${repoSlug}/pipelines_config/variables/`
   )
